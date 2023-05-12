@@ -305,7 +305,7 @@ bot.on('callback_query', async msg => {
             await bot.sendMessage(chatID, '📖');
             await bot.sendMessage(chatID, 'Список всіх викликів:');
             Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value?.company} - ${value?.description} - ${value?.source} - ${value?.type} - ${value?.link} - ${value.date}\n`
+                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n`
                 index++;
             })
             await bot.sendMessage(chatID, listTaskStr);
@@ -336,7 +336,7 @@ bot.on('callback_query', async msg => {
             await bot.sendMessage(chatID, '📖');
             await bot.sendMessage(chatID, 'Список всіх викликів:');
             Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value?.company} - ${value?.description} - ${value?.source} - ${value?.type} - ${value?.link} - ${value.date}\n`
+                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n`
                 index++;
             })
             return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
