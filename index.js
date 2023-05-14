@@ -2,6 +2,9 @@ const {
     buttons, buttons_settings, buttonsGetMonth, monthButtons, goToMainMenu, buttonSource, buttonType, dateButton
 } = require('./options.js');
 
+const xl = require('excel4node');
+const wb = new xl.Workbook();
+
 const TelegramAPI = require('node-telegram-bot-api');
 const axios = require("axios");
 const token = '5899589110:AAFwsxjWwhzCUwzOfMP_o-25AnELV0GVMmI';
@@ -129,6 +132,11 @@ bot.on('message', async msg => {
         msg.text = null;
         marker = '';
         data = '';
+    }
+
+
+    if (text && marker === 'edit_number') {
+
     }
 });
 
@@ -259,28 +267,6 @@ bot.on('callback_query', async msg => {
     }
 
 
-    if (data === '/current_month') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-    }
-
     if (data === '/select_month') {
         return bot.sendMessage(chatID, 'Виберіть місяць:', monthButtons);
     }
@@ -290,7 +276,8 @@ bot.on('callback_query', async msg => {
         return bot.sendMessage(chatID, 'Виберіть за який період:', buttonsGetMonth);
     }
 
-    if (data && marker === 'edit') {
+
+    if (data === '/current_month' && marker === 'edit') {
         let listTaskStr = '';
         let listTask = {};
         let index = 1;
@@ -316,6 +303,27 @@ bot.on('callback_query', async msg => {
         return marker = 'edit_number';
     }
 
+    if (data === '/current_month') {
+        let listTaskStr = '';
+        let listTask = {};
+        let index = 1;
+
+        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
+            listTask = value.data;
+        });
+
+        if (listTask) {
+            await bot.sendMessage(chatID, '📖');
+            await bot.sendMessage(chatID, 'Список всіх викликів:');
+            Object.values(listTask).map((value) => {
+                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
+                index++;
+            })
+            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
+        } else {
+            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
+        }
+    }
 
     if (data === '/month_1' && marker === 'delete') {
         let listTaskStr = '';
@@ -894,6 +902,68 @@ bot.on('callback_query', async msg => {
     if (data === '/settings') {
         await bot.sendMessage(chatID, '⚙️');
         return bot.sendMessage(chatID, 'Введіть тип налаштувань:', buttons_settings);
+    }
+
+    if (data === '/download') {
+        let listTask = {};
+        let data = [];
+
+        await bot.sendMessage(chatID, 'Файл');
+
+        const ws = wb.addWorksheet('Виклики');
+
+        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
+            listTask = value.data;
+        });
+
+        let index = 1;
+
+        Object.values(listTask).map((value) => {
+            data.push({
+                id: index.toString(),
+                company: value.company,
+                description: value.description,
+                link: value.link,
+                type: value.type,
+                source: value.source,
+                date: value.date
+            });
+            index++;
+        });
+
+        const headingColumnNames = [
+            "№",
+            "Організація",
+            "Опис",
+            "Посилання",
+            "Тип",
+            "Джерело",
+            "Дата",
+        ]
+
+        let headingColumnIndex = 1;
+        await headingColumnNames.forEach(heading => {
+            ws.cell(1, headingColumnIndex++)
+                .string(heading)
+        });
+
+        let rowIndex = 2;
+        await data.forEach(record => {
+            let columnIndex = 1;
+            Object.keys(record).forEach(columnName => {
+                ws.cell(rowIndex, columnIndex++)
+                    .string(record [columnName])
+            });
+            rowIndex++;
+        });
+        await wb.write(`Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
+
+         setTimeout(() => {
+             bot.sendDocument(chatID, `Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
+         }, 2000);
+         setTimeout(()=>{
+             return bot.sendMessage(chatID, 'Готово', goToMainMenu);
+         }, 2500);
     }
 
     if (data === '/back_main') {

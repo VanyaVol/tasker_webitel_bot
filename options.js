@@ -7,9 +7,10 @@ module.exports = {
                 text: '🗑 Видалити виклик 🗑', callback_data: '/delete'
             }], [{
                 text: '⬇️ Вивантажити виклики за поточний місяць ⬇️', callback_data: '/download'
-            }], [{text: '⚙️ Налаштування ⚙️', callback_data: '/settings'}], [{
-                text: '❌ Завершити роботу з ботом ❌', callback_data: '/close'
-            }]]
+            }], // [{text: '⚙️ Налаштування ⚙️', callback_data: '/settings'}],
+                [{
+                    text: '❌ Завершити роботу з ботом ❌', callback_data: '/close'
+                }]]
         })
     }, buttons_settings: {
         reply_markup: JSON.stringify({
@@ -59,12 +60,24 @@ module.exports = {
                 text: 'Консультація', callback_data: '/consultation'
             }]]
         })
-    },
-    buttonSource: {
+    }, buttonSource: {
         reply_markup: JSON.stringify({
-            inline_keyboard: [[{text: 'Telegram', callback_data: '/telegram'}, {text: 'Skype', callback_data: '/skype'}, {
+            inline_keyboard: [[{text: 'Telegram', callback_data: '/telegram'}, {
+                text: 'Skype', callback_data: '/skype'
+            }, {
                 text: 'Jira', callback_data: '/jira'
             }]]
+        })
+    },
+    buttonEditSelect: {
+        reply_markup: JSON.stringify({
+            inline_keyboard: [[
+                {text: 'Назву компанії', callback_data: '/nameCompany'},
+                {text: 'Назву компанії', callback_data: '/nameCompany'},
+                {text: 'Назву компанії', callback_data: '/nameCompany'},
+                {text: 'Назву компанії', callback_data: '/nameCompany'},
+                {text: 'Опис', callback_data: '/consultation'}
+            ]]
         })
     }
 }
