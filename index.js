@@ -8,7 +8,7 @@ const axios = require("axios");
 const token = '5899589110:AAFwsxjWwhzCUwzOfMP_o-25AnELV0GVMmI';
 const bot = new TelegramAPI(token, {polling: true});
 
-let company, type, source, description, link, data, marker = '';
+let company, type, source, description, link, data, marker, numberEdit= '';
 
 bot.setMyCommands([
     {command: '/start', description: 'Запустити бота'},
@@ -117,6 +117,7 @@ bot.on('message', async msg => {
     }
 
     if (text && marker === 'edit_number') {
+        numberEdit = msg.text;
         return bot.sendMessage(chatID, 'Виберіть, що ви хочете відредагувати:', buttonEditSelect);
     }
 });
