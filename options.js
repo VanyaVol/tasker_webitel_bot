@@ -1,15 +1,15 @@
 module.exports = {
     buttons: {
         reply_markup: JSON.stringify({
-            inline_keyboard: [[{text: '➕ Додати виклик ➕', callback_data: '/add'}], [{
-                text: '📖 Список викликів 📖', callback_data: '/list'
-            }], [{text: '🖊 Редагувати виклик 🖊', callback_data: '/edit'}, {
-                text: '🗑 Видалити виклик 🗑', callback_data: '/delete'
+            inline_keyboard: [[{text: 'Додати виклик ➕', callback_data: '/add'}], [{
+                text: 'Список викликів 📖', callback_data: '/list'
+            }], [{text: 'Редагувати виклик 🖊', callback_data: '/edit'}, {
+                text: 'Видалити виклик 🗑', callback_data: '/delete'
             }], [{
-                text: '⬇️ Вивантажити виклики за поточний місяць ⬇️', callback_data: '/download'
-            }], // [{text: '⚙️ Налаштування ⚙️', callback_data: '/settings'}],
+                text: 'Вивантажити виклики ⬇️', callback_data: '/download'
+            }], // [{text: 'Налаштування ⚙️', callback_data: '/settings'}],
                 [{
-                    text: '❌ Завершити роботу з ботом ❌', callback_data: '/close'
+                    text: 'Завершити роботу ❌', callback_data: '/close'
                 }]]
         })
     }, buttons_settings: {
@@ -23,9 +23,9 @@ module.exports = {
     }, buttonsGetMonth: {
         reply_markup: JSON.stringify({
             inline_keyboard: [[{
-                text: '🗓 Показати за поточний місяць 🗓', callback_data: '/current_month'
-            }], [{text: '✔️ Вибрати місяць ✔️', callback_data: '/select_month'}], [{
-                text: '🏠 Перейти в головне меню 🏠', callback_data: '/back_main'
+                text: 'За поточний місяць 🗓', callback_data: '/current_month'
+            }], [{text: 'Вибрати місяць ✔️', callback_data: '/select_month'}], [{
+                text: 'Перейти в головне меню 🏠', callback_data: '/back_main'
             }]]
         })
     }, monthButtons: {
@@ -45,8 +45,8 @@ module.exports = {
     }, goToMainMenu: {
         reply_markup: JSON.stringify({
             inline_keyboard: [[{
-                text: '🏠 Перейти в головне меню 🏠', callback_data: '/goToMainMenu'
-            }], [{text: '❌ Завершити чат ❌', callback_data: '/close'}],]
+                text: 'Перейти в головне меню 🏠', callback_data: '/goToMainMenu'
+            }], [{text: 'Завершити роботу ❌', callback_data: '/close'}],]
         })
     }, dateButton: {
         reply_markup: JSON.stringify({
@@ -80,6 +80,48 @@ module.exports = {
                     {text: 'Джерело', callback_data: '/sourceCompanyEdit'},
                     {text: 'Дату', callback_data: '/dateCompanyEdit'}
                 ]]
+        })
+    },
+    numbers: {
+        reply_markup: JSON.stringify({
+            inline_keyboard: [[
+                {text: '1', callback_data: '/1'},
+                {text: '2', callback_data: '/2'},
+                {text: '3', callback_data: '/3'},
+                {text: '4', callback_data: '/4'},
+                {text: '5', callback_data: '/5'},
+                {text: '6', callback_data: '/6'}
+            ],
+                [
+                    {text: '7', callback_data: '/7'},
+                    {text: '8', callback_data: '/8'},
+                    {text: '9', callback_data: '/9'},
+                    {text: '10', callback_data: '/11'},
+                    {text: '11', callback_data: '/12'},
+                    {text: '12', callback_data: '/13'}
+                ],
+                [
+                    {text: '13', callback_data: '/13'},
+                    {text: '14', callback_data: '/14'},
+                    {text: '15', callback_data: '/15'},
+                    {text: '16', callback_data: '/16'},
+                    {text: '17', callback_data: '/17'},
+                    {text: '18', callback_data: '/18'}
+                ],
+                [
+                    {text: '19', callback_data: '/19'},
+                    {text: '20', callback_data: '/20'},
+                    {text: '21', callback_data: '/21'},
+                    {text: '22', callback_data: '/22'},
+                    {text: '23', callback_data: '/23'},
+                    {text: '24', callback_data: '/24'}
+                ],
+                [
+                    {text: '25', callback_data: '/25'},
+                    {text: '26', callback_data: '/26'},
+                    {text: '27', callback_data: '/27'}
+                ]
+            ]
         })
     }
 }

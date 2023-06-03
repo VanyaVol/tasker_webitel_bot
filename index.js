@@ -1,5 +1,13 @@
 const {
-    buttons, buttons_settings, buttonsGetMonth, monthButtons, goToMainMenu, buttonSource, buttonType, dateButton, buttonEditSelect
+    buttons,
+    buttons_settings,
+    buttonsGetMonth,
+    monthButtons,
+    goToMainMenu,
+    buttonSource,
+    buttonType,
+    dateButton,
+    buttonEditSelect,
 } = require('./options.js');
 
 const xl = require('excel4node');
@@ -8,7 +16,7 @@ const axios = require("axios");
 const token = '5899589110:AAFwsxjWwhzCUwzOfMP_o-25AnELV0GVMmI';
 const bot = new TelegramAPI(token, {polling: true});
 
-let company, type, source, description, link, data, marker, numberEdit= '';
+let company, type, source, description, link, data, marker, numberEdit = '';
 
 bot.setMyCommands([
     {command: '/start', description: 'Запустити бота'},
@@ -20,12 +28,12 @@ bot.on('message', async msg => {
     const chatID = msg.chat.id;
 
     if (text === '/start') {
-        await bot.sendMessage(chatID, '👋');
-        return bot.sendMessage(chatID, `Вітаю! ${msg.from.first_name} Це бот для опрацювання викликів.`, buttons);
+        // await bot.sendMessage(chatID, '👋');
+        return bot.sendMessage(chatID, `Вітаю! ${msg.from.first_name} Це бот для опрацювання викликів. 👋`, buttons);
     }
 
     if (text === '/close') {
-        return bot.sendMessage(chatID, `${msg.from.first_name} роботу завершено!`);
+        return bot.sendMessage(chatID, `${msg.from.first_name} роботу з ботом завершено! ✌️`);
     }
 
     if (text === '/info') {
@@ -131,17 +139,18 @@ bot.on('callback_query', async msg => {
         let index = 1;
         marker = '';
 
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${numMonth}/tasks.json`).then(value => {
+        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${numMonth}/tasks.json`, {headers: {Authorization: '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'}}).then(value => {
             listTask = value.data;
         });
 
         if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
+            // await bot.sendMessage(chatID, '📖');
+            await bot.sendMessage(chatID, 'Список всіх викликів 📖:');
             Object.values(listTask).map((value) => {
                 listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
                 index++;
             })
+            // await bot.sendMessage(chatID,'test',numbers);
             return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
         } else {
             return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
@@ -158,8 +167,8 @@ bot.on('callback_query', async msg => {
         });
 
         if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
+            // await bot.sendMessage(chatID, '📖');
+            await bot.sendMessage(chatID, 'Список всіх викликів для видалення 📖:');
             Object.values(listTask).map((value) => {
                 listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
                 index++;
@@ -180,13 +189,13 @@ bot.on('callback_query', async msg => {
         let listTask = {};
         let index = 1;
 
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
+        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${numMonth}/tasks.json`).then(value => {
             listTask = value.data;
         });
 
         if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
+            // await bot.sendMessage(chatID, '📖');
+            await bot.sendMessage(chatID, 'Список всіх викликів для редагування 📖:');
             Object.values(listTask).map((value) => {
                 listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
                 index++;
@@ -201,9 +210,71 @@ bot.on('callback_query', async msg => {
         return marker = 'edit_number';
     }
 
+    let downloadFile = async (numMonth) => {
+        const wb = new xl.Workbook();
+        const headingColumnNames = [
+            "№",
+            "Організація",
+            "Опис",
+            "Посилання",
+            "Тип",
+            "Джерело",
+            "Дата",
+        ];
+
+        let index = 1;
+        let headingColumnIndex = 1;
+        let rowIndex = 2;
+        let listTask = {};
+        let export_data = [];
+        let ws = wb.addWorksheet('Виклики');
+
+        // await bot.sendMessage(chatID, 'Файл');
+        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${numMonth}/tasks.json`).then(value => {
+            listTask = value.data;
+        });
+
+        Object.values(listTask).map((value) => {
+            export_data.push({
+                id: index.toString(),
+                company: value.company,
+                description: value.description,
+                link: value.link,
+                type: value.type,
+                source: value.source,
+                date: value.date
+            });
+            index++;
+        });
+
+        await headingColumnNames.forEach(heading => {
+            ws.cell(1, headingColumnIndex++)
+                .string(heading)
+        });
+
+        await export_data.forEach(record => {
+            let columnIndex = 1;
+            Object.keys(record).forEach(columnName => {
+                ws.cell(rowIndex, columnIndex++)
+                    .string(record [columnName])
+            });
+            rowIndex++;
+        });
+
+        await wb.write(`Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
+
+        setTimeout(() => {
+            bot.sendDocument(chatID, `Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
+        }, 2000);
+
+        setTimeout(() => {
+            bot.sendMessage(chatID, 'Файл згенеровано. Виберіть наступну дію:', goToMainMenu);
+        }, 2500);
+    }
+
     if (data === '/delete') {
         marker = 'delete';
-        return bot.sendMessage(chatID, 'Виберіть за який період:', buttonsGetMonth);
+        return bot.sendMessage(chatID, 'Виберіть місяць з якого Ви бажаєте видалити виклик:', buttonsGetMonth);
     }
 
     if (data === '/currentDate') {
@@ -288,7 +359,7 @@ bot.on('callback_query', async msg => {
 
     if (data === '/list') {
         marker = 'list';
-        return bot.sendMessage(chatID, 'Виберіть місяць:', buttonsGetMonth);
+        return bot.sendMessage(chatID, 'Виберіть за який місяць відобразити список викликів:', buttonsGetMonth);
     }
 
     if (data === '/current_month' && marker === 'delete') {
@@ -305,11 +376,11 @@ bot.on('callback_query', async msg => {
 
     if (data === '/edit') {
         marker = 'edit';
-        return bot.sendMessage(chatID, 'Виберіть за який період:', buttonsGetMonth);
+        return bot.sendMessage(chatID, 'Виберіть місяць, в якому Вам потрібно відредагувати виклик:', buttonsGetMonth);
     }
 
     if (data === '/current_month' && marker === 'edit') {
-       return editMonth(new Date().getDate()+1);
+        return editMonth(new Date().getMonth() + 1);
     }
 
     if (data === '/current_month' && marker === 'list') {
@@ -412,6 +483,58 @@ bot.on('callback_query', async msg => {
         return listMonth(12);
     }
 
+    if (data === '/current_month' && marker === 'download') {
+        return downloadFile(new Date().getMonth() + 1);
+    }
+
+    if (data === '/month_1' && marker === 'download') {
+        return downloadFile(1);
+    }
+
+    if (data === '/month_2' && marker === 'download') {
+        return downloadFile(2);
+    }
+
+    if (data === '/month_3' && marker === 'download') {
+        return downloadFile(3);
+    }
+
+    if (data === '/month_4' && marker === 'download') {
+        return downloadFile(4);
+    }
+
+    if (data === '/month_5' && marker === 'download') {
+        return downloadFile(5);
+    }
+
+    if (data === '/month_6' && marker === 'download') {
+        return downloadFile(6);
+    }
+
+    if (data === '/month_7' && marker === 'download') {
+        return downloadFile(7);
+    }
+
+    if (data === '/month_8' && marker === 'download') {
+        return downloadFile(8);
+    }
+
+    if (data === '/month_9' && marker === 'download') {
+        return downloadFile(9);
+    }
+
+    if (data === '/month_10' && marker === 'download') {
+        return downloadFile(10);
+    }
+
+    if (data === '/month_11' && marker === 'download') {
+        return downloadFile(11);
+    }
+
+    if (data === '/month_12' && marker === 'download') {
+        return downloadFile(12);
+    }
+
     if (data === '/add_company') {
         company = '';
         await bot.sendMessage(chatID, 'Введіть назву компанії:');
@@ -434,65 +557,8 @@ bot.on('callback_query', async msg => {
     }
 
     if (data === '/download') {
-        const wb = new xl.Workbook();
-        const headingColumnNames = [
-            "№",
-            "Організація",
-            "Опис",
-            "Посилання",
-            "Тип",
-            "Джерело",
-            "Дата",
-        ];
-
-        let index = 1;
-        let headingColumnIndex = 1;
-        let rowIndex = 2;
-        let listTask = {};
-        let export_data = [];
-        let ws = wb.addWorksheet('Виклики');
-
-        await bot.sendMessage(chatID, 'Файл');
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        Object.values(listTask).map((value) => {
-            export_data.push({
-                id: index.toString(),
-                company: value.company,
-                description: value.description,
-                link: value.link,
-                type: value.type,
-                source: value.source,
-                date: value.date
-            });
-            index++;
-        });
-
-        await headingColumnNames.forEach(heading => {
-            ws.cell(1, headingColumnIndex++)
-                .string(heading)
-        });
-
-        await export_data.forEach(record => {
-            let columnIndex = 1;
-            Object.keys(record).forEach(columnName => {
-                ws.cell(rowIndex, columnIndex++)
-                    .string(record [columnName])
-            });
-            rowIndex++;
-        });
-
-        await wb.write(`Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
-
-        setTimeout(() => {
-            bot.sendDocument(chatID, `Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
-        }, 2000);
-
-        setTimeout(() => {
-            bot.sendMessage(chatID, 'Готово', goToMainMenu);
-        }, 2500);
+        marker = 'download';
+        return bot.sendMessage(chatID, 'Виберіть за який місяць Ви бажаєте вивантажити файл:', buttonsGetMonth);
     }
 
     if (data === '/back_main') {
@@ -500,7 +566,7 @@ bot.on('callback_query', async msg => {
     }
 
     if (data === '/close') {
-        await bot.sendMessage(chatID, '✌️');
-        return bot.sendMessage(chatID, 'Роботу завершено!');
+        // await bot.sendMessage(chatID, '✌️');
+        return bot.sendMessage(chatID, 'Роботу з ботом завершено! ✌️');
     }
 });
