@@ -1,23 +1,19 @@
 const {
-    buttons, buttons_settings, buttonsGetMonth, monthButtons, goToMainMenu, buttonSource, buttonType, dateButton
+    buttons, buttons_settings, buttonsGetMonth, monthButtons, goToMainMenu, buttonSource, buttonType, dateButton, buttonEditSelect
 } = require('./options.js');
 
 const xl = require('excel4node');
-const wb = new xl.Workbook();
-
 const TelegramAPI = require('node-telegram-bot-api');
 const axios = require("axios");
 const token = '5899589110:AAFwsxjWwhzCUwzOfMP_o-25AnELV0GVMmI';
 const bot = new TelegramAPI(token, {polling: true});
 
+let company, type, source, description, link, data, marker = '';
 
 bot.setMyCommands([
     {command: '/start', description: 'Запустити бота'},
     {command: '/info', description: 'Інформація про бота'},
     {command: '/close', description: 'Завершити роботу з ботом'}]);
-
-
-let company, type, source, description, link, data, marker = '';
 
 bot.on('message', async msg => {
     const text = msg.text;
@@ -44,17 +40,6 @@ bot.on('message', async msg => {
         marker = '';
         data = '';
 
-        let month = (new Date().getMonth() + 1);
-        let day = (new Date().getDate());
-
-        if (month.toString().length < 2) {
-            month = `0${month}`;
-        }
-
-        if (day.toString().length < 2) {
-            day = `0${day}`;
-        }
-
         await axios.post(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`, {
             name: `${msg.from.first_name} ${msg.from.last_name}`,
             company: company,
@@ -67,7 +52,6 @@ bot.on('message', async msg => {
         return msg.text = null;
     }
 
-
     if (text && marker === 'delete_number') {
         let listTask = {};
         let index = 1;
@@ -77,7 +61,6 @@ bot.on('message', async msg => {
         });
 
         if (listTask) {
-
             for (const listTaskElement in listTask) {
                 if (+index === +msg.text) {
                     await axios.delete(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks/${listTaskElement}.json`)
@@ -113,7 +96,6 @@ bot.on('message', async msg => {
         marker = '';
     }
 
-
     if (data && marker === 'type') {
         marker = '';
         data = '';
@@ -134,16 +116,89 @@ bot.on('message', async msg => {
         data = '';
     }
 
-
     if (text && marker === 'edit_number') {
-
+        return bot.sendMessage(chatID, 'Виберіть, що ви хочете відредагувати:', buttonEditSelect);
     }
 });
 
 bot.on('callback_query', async msg => {
-    data = msg.data;
     const chatID = msg.message.chat.id;
+    data = msg.data;
+    let listMonth = async (numMonth) => {
+        let listTaskStr = '';
+        let listTask = {};
+        let index = 1;
+        marker = '';
 
+        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${numMonth}/tasks.json`).then(value => {
+            listTask = value.data;
+        });
+
+        if (listTask) {
+            await bot.sendMessage(chatID, '📖');
+            await bot.sendMessage(chatID, 'Список всіх викликів:');
+            Object.values(listTask).map((value) => {
+                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
+                index++;
+            })
+            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
+        } else {
+            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
+        }
+    }
+
+    let deleteMonth = async (numMonth) => {
+        let listTaskStr = '';
+        let listTask = {};
+        let index = 1;
+
+        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${numMonth}/tasks.json`).then(value => {
+            listTask = value.data;
+        });
+
+        if (listTask) {
+            await bot.sendMessage(chatID, '📖');
+            await bot.sendMessage(chatID, 'Список всіх викликів:');
+            Object.values(listTask).map((value) => {
+                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
+                index++;
+            })
+            await bot.sendMessage(chatID, listTaskStr);
+        } else {
+            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
+        }
+
+        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
+
+        msg.text = null;
+        return marker = 'delete_number';
+    }
+
+    let editMonth = async (numMonth) => {
+        let listTaskStr = '';
+        let listTask = {};
+        let index = 1;
+
+        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
+            listTask = value.data;
+        });
+
+        if (listTask) {
+            await bot.sendMessage(chatID, '📖');
+            await bot.sendMessage(chatID, 'Список всіх викликів:');
+            Object.values(listTask).map((value) => {
+                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
+                index++;
+            })
+            await bot.sendMessage(chatID, listTaskStr);
+        } else {
+            await bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
+        }
+
+        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно редагувати:');
+        msg.text = null;
+        return marker = 'edit_number';
+    }
 
     if (data === '/delete') {
         marker = 'delete';
@@ -230,42 +285,18 @@ bot.on('callback_query', async msg => {
         return bot.sendMessage(chatID, 'Головне меню:', buttons);
     }
 
-
     if (data === '/list') {
-        marker = '';
+        marker = 'list';
         return bot.sendMessage(chatID, 'Виберіть місяць:', buttonsGetMonth);
     }
 
     if (data === '/current_month' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            await bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(new Date().getMonth() + 1);
     }
 
     if (data === '/select_month' && marker === 'delete') {
         return bot.sendMessage(chatID, 'Виберіть місяць:', monthButtons);
     }
-
 
     if (data === '/select_month') {
         return bot.sendMessage(chatID, 'Виберіть місяць:', monthButtons);
@@ -276,612 +307,109 @@ bot.on('callback_query', async msg => {
         return bot.sendMessage(chatID, 'Виберіть за який період:', buttonsGetMonth);
     }
 
-
     if (data === '/current_month' && marker === 'edit') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            await bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно редагувати:');
-        msg.text = null;
-        return marker = 'edit_number';
+       return editMonth(new Date().getDate()+1);
     }
 
-    if (data === '/current_month') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/current_month' && marker === 'list') {
+        return listMonth(new Date().getMonth() + 1);
     }
 
     if (data === '/month_1' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/1/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(1);
     }
 
     if (data === '/month_2' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/2/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(2);
     }
 
     if (data === '/month_3' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/3/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(3);
     }
 
     if (data === '/month_4' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/4/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(4);
     }
 
     if (data === '/month_5' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/5/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(5);
     }
 
     if (data === '/month_6' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/4/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(6);
     }
 
     if (data === '/month_7' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/7/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(7);
     }
 
     if (data === '/month_8' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/8/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr,);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(8);
     }
 
     if (data === '/month_9' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/9/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(9);
     }
 
     if (data === '/month_10' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/10/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(10);
     }
 
     if (data === '/month_11' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/11/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(11);
     }
 
     if (data === '/month_12' && marker === 'delete') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/12/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            await bot.sendMessage(chatID, listTaskStr);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
-
-        await bot.sendMessage(chatID, 'Вкажіть порядковий номер виклику, який потрібно видалити:');
-        msg.text = null;
-        return marker = 'delete_number';
+        return deleteMonth(12);
     }
 
-
-    /// select delete
-    if (data === '/month_1') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/1/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_1' && marker === 'list') {
+        return listMonth(1);
     }
 
-    if (data === '/month_2') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/2/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_2' && marker === 'list') {
+        return listMonth(2);
     }
 
-    if (data === '/month_3') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/3/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_3' && marker === 'list') {
+        return listMonth(3);
     }
 
-    if (data === '/month_4') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/4/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_4' && marker === 'list') {
+        return listMonth(4);
     }
 
-    if (data === '/month_5') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/5/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_5' && marker === 'list') {
+        return listMonth(5);
     }
 
-    if (data === '/month_6') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/4/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_6' && marker === 'list') {
+        return listMonth(6);
     }
 
-
-    if (data === '/month_7') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/7/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_7' && marker === 'list') {
+        return listMonth(7);
     }
 
-    if (data === '/month_8') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/8/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_8' && marker === 'list') {
+        return listMonth(8);
     }
 
-    if (data === '/month_9') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/9/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_9' && marker === 'list') {
+        return listMonth(9);
     }
 
-    if (data === '/month_10') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/10/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_10' && marker === 'list') {
+        return listMonth(10);
     }
 
-    if (data === '/month_11') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/11/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_11' && marker === 'list') {
+        return listMonth(11);
     }
 
-    if (data === '/month_12') {
-        let listTaskStr = '';
-        let listTask = {};
-        let index = 1;
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/12/tasks.json`).then(value => {
-            listTask = value.data;
-        });
-
-        if (listTask) {
-            await bot.sendMessage(chatID, '📖');
-            await bot.sendMessage(chatID, 'Список всіх викликів:');
-            Object.values(listTask).map((value) => {
-                listTaskStr = listTaskStr + `${index}. ${value.company} - ${value.description} - ${value.source} - ${value.type} - ${value.link} - ${value.date}\n\n`;
-                index++;
-            })
-            return bot.sendMessage(chatID, listTaskStr, goToMainMenu);
-        } else {
-            return bot.sendMessage(chatID, 'Список пустий... Спрочатку додайте виклики.', goToMainMenu);
-        }
+    if (data === '/month_12' && marker === 'list') {
+        return listMonth(12);
     }
-
-    ////
-
 
     if (data === '/add_company') {
         company = '';
@@ -905,21 +433,31 @@ bot.on('callback_query', async msg => {
     }
 
     if (data === '/download') {
+        const wb = new xl.Workbook();
+        const headingColumnNames = [
+            "№",
+            "Організація",
+            "Опис",
+            "Посилання",
+            "Тип",
+            "Джерело",
+            "Дата",
+        ];
+
+        let index = 1;
+        let headingColumnIndex = 1;
+        let rowIndex = 2;
         let listTask = {};
-        let data = [];
+        let export_data = [];
+        let ws = wb.addWorksheet('Виклики');
 
         await bot.sendMessage(chatID, 'Файл');
-
-        const ws = wb.addWorksheet('Виклики');
-
         await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
             listTask = value.data;
         });
 
-        let index = 1;
-
         Object.values(listTask).map((value) => {
-            data.push({
+            export_data.push({
                 id: index.toString(),
                 company: value.company,
                 description: value.description,
@@ -931,24 +469,12 @@ bot.on('callback_query', async msg => {
             index++;
         });
 
-        const headingColumnNames = [
-            "№",
-            "Організація",
-            "Опис",
-            "Посилання",
-            "Тип",
-            "Джерело",
-            "Дата",
-        ]
-
-        let headingColumnIndex = 1;
         await headingColumnNames.forEach(heading => {
             ws.cell(1, headingColumnIndex++)
                 .string(heading)
         });
 
-        let rowIndex = 2;
-        await data.forEach(record => {
+        await export_data.forEach(record => {
             let columnIndex = 1;
             Object.keys(record).forEach(columnName => {
                 ws.cell(rowIndex, columnIndex++)
@@ -956,14 +482,16 @@ bot.on('callback_query', async msg => {
             });
             rowIndex++;
         });
+
         await wb.write(`Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
 
-         setTimeout(() => {
-             bot.sendDocument(chatID, `Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
-         }, 2000);
-         setTimeout(()=>{
-             return bot.sendMessage(chatID, 'Готово', goToMainMenu);
-         }, 2500);
+        setTimeout(() => {
+            bot.sendDocument(chatID, `Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
+        }, 2000);
+
+        setTimeout(() => {
+            bot.sendMessage(chatID, 'Готово', goToMainMenu);
+        }, 2500);
     }
 
     if (data === '/back_main') {
@@ -975,4 +503,3 @@ bot.on('callback_query', async msg => {
         return bot.sendMessage(chatID, 'Роботу завершено!');
     }
 });
-

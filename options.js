@@ -72,12 +72,14 @@ module.exports = {
     buttonEditSelect: {
         reply_markup: JSON.stringify({
             inline_keyboard: [[
-                {text: 'Назву компанії', callback_data: '/nameCompany'},
-                {text: 'Назву компанії', callback_data: '/nameCompany'},
-                {text: 'Назву компанії', callback_data: '/nameCompany'},
-                {text: 'Назву компанії', callback_data: '/nameCompany'},
-                {text: 'Опис', callback_data: '/consultation'}
-            ]]
+                {text: 'Назву компанії', callback_data: '/nameCompanyEdit'},
+                {text: 'Тип', callback_data: '/typeCompanyEdit'}
+            ],
+                [
+                    {text: 'Опис', callback_data: '/descriptionCompanyEdit'},
+                    {text: 'Джерело', callback_data: '/sourceCompanyEdit'},
+                    {text: 'Дату', callback_data: '/dateCompanyEdit'}
+                ]]
         })
     }
 }
