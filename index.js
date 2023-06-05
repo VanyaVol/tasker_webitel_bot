@@ -284,6 +284,9 @@ bot.on('callback_query', async msg => {
                 bot.sendDocument(chatID, `Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
             }, 2000);
 
+            marker = ''
+            data = '';
+
             setTimeout(() => {
                 return bot.sendMessage(chatID, 'Файл згенеровано. Виберіть наступну дію:', goToMainMenu);
             }, 2500);
