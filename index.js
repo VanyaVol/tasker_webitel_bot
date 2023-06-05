@@ -36,9 +36,9 @@ bot.on('message', async msg => {
         return bot.sendMessage(chatID, `${msg.from.first_name} роботу з ботом завершено! ✌️`);
     }
 
-    if (text === '/info') {
-        return bot.sendMessage(chatID, `Автор Волошин Іван.`);
-    }
+    // if (text === '/info') {
+    //     return bot.sendMessage(chatID, `Автор Волошин Іван.`);
+    // }
 
     if (text && marker === 'inputDate') {
         await bot.sendMessage(chatID, 'Збережено');
@@ -63,21 +63,33 @@ bot.on('message', async msg => {
     if (text && marker === 'delete_number') {
         let listTask = {};
         let index = 1;
+        let regNumber = new RegExp("^\\d+$");
 
-        await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
-            listTask = value.data;
-        });
+        if (+msg.text.match(regNumber)) {
+            await axios.get(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks.json`).then(value => {
+                listTask = value.data;
+            });
 
-        if (listTask) {
-            for (const listTaskElement in listTask) {
-                if (+index === +msg.text) {
-                    await axios.delete(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks/${listTaskElement}.json`)
+            if (+msg.text <= Object.keys(listTask).length) {
+                if (listTask) {
+                    for (const listTaskElement in listTask) {
+                        if (+index === +msg.text) {
+                            await axios.delete(`https://tasker-webitel-default-rtdb.firebaseio.com/users/${+msg.from.id}/${new Date().getFullYear()}/${new Date().getMonth() + 1}/tasks/${listTaskElement}.json`)
+                        }
+                        index++;
+                    }
                 }
-                index++;
+                return bot.sendMessage(chatID, 'Виклик успішно видалено! Виберіть наступну дію:', goToMainMenu);
+
+            }
+
+
+            if (+msg.text > Object.keys(listTask).length) {
+                return bot.sendMessage(chatID, 'Введений некорректний номер.', goToMainMenu);
             }
         }
 
-        return bot.sendMessage(chatID, 'Видалено!', goToMainMenu);
+        return bot.sendMessage(chatID, 'Введена неккоректна інформація.', goToMainMenu);
     }
 
     if (text && marker === 'company' && text !== '/close') {
@@ -120,13 +132,16 @@ bot.on('message', async msg => {
         await bot.sendMessage(chatID, 'Виберіть дату:', dateButton);
         description = msg.text;
         msg.text = null;
-        marker = '';
         data = '';
     }
 
     if (text && marker === 'edit_number') {
         numberEdit = msg.text;
         return bot.sendMessage(chatID, 'Виберіть, що ви хочете відредагувати:', buttonEditSelect);
+    }
+
+    if (text && marker === '') {
+        return bot.sendMessage(chatID, 'Немає такої команди. Виберіть дію зі списку:', buttons);
     }
 });
 
@@ -166,7 +181,7 @@ bot.on('callback_query', async msg => {
             listTask = value.data;
         });
 
-        if (listTask) {
+        if (listTask != null) {
             // await bot.sendMessage(chatID, '📖');
             await bot.sendMessage(chatID, 'Список всіх викликів для видалення 📖:');
             Object.values(listTask).map((value) => {
@@ -234,42 +249,49 @@ bot.on('callback_query', async msg => {
             listTask = value.data;
         });
 
-        Object.values(listTask).map((value) => {
-            export_data.push({
-                id: index.toString(),
-                company: value.company,
-                description: value.description,
-                link: value.link,
-                type: value.type,
-                source: value.source,
-                date: value.date
+
+        if (listTask !== null) {
+            Object.values(listTask).map((value) => {
+                export_data.push({
+                    id: index.toString(),
+                    company: value.company,
+                    description: value.description,
+                    link: value.link,
+                    type: value.type,
+                    source: value.source,
+                    date: value.date
+                });
+                index++;
             });
-            index++;
-        });
 
-        await headingColumnNames.forEach(heading => {
-            ws.cell(1, headingColumnIndex++)
-                .string(heading)
-        });
-
-        await export_data.forEach(record => {
-            let columnIndex = 1;
-            Object.keys(record).forEach(columnName => {
-                ws.cell(rowIndex, columnIndex++)
-                    .string(record [columnName])
+            await headingColumnNames.forEach(heading => {
+                ws.cell(1, headingColumnIndex++)
+                    .string(heading)
             });
-            rowIndex++;
-        });
 
-        await wb.write(`Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
+            await export_data.forEach(record => {
+                let columnIndex = 1;
+                Object.keys(record).forEach(columnName => {
+                    ws.cell(rowIndex, columnIndex++)
+                        .string(record [columnName])
+                });
+                rowIndex++;
+            });
 
-        setTimeout(() => {
-            bot.sendDocument(chatID, `Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
-        }, 2000);
+            await wb.write(`Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
 
-        setTimeout(() => {
-            bot.sendMessage(chatID, 'Файл згенеровано. Виберіть наступну дію:', goToMainMenu);
-        }, 2500);
+            setTimeout(() => {
+                bot.sendDocument(chatID, `Виклики ${msg.from.first_name} ${msg.from.last_name}.xlsx`);
+            }, 2000);
+
+            setTimeout(() => {
+                return bot.sendMessage(chatID, 'Файл згенеровано. Виберіть наступну дію:', goToMainMenu);
+            }, 2500);
+        } else {
+            return bot.sendMessage(chatID, 'У Вас немає викликів за вибраний період. Спочатку додайте виклики, або ж виберіть інший період.', goToMainMenu);
+        }
+
+
     }
 
     if (data === '/delete') {
@@ -278,9 +300,9 @@ bot.on('callback_query', async msg => {
     }
 
     if (data === '/currentDate') {
-        await bot.sendMessage(chatID, 'Збережено');
-        await bot.sendMessage(chatID, '🏠');
-        await bot.sendMessage(chatID, 'Головне меню:', buttons);
+        await bot.sendMessage(chatID, 'Виклик успішно додано.');
+        // await bot.sendMessage(chatID, '🏠');
+        await bot.sendMessage(chatID, 'Головне меню 🏠:', buttons);
         msg.text = null;
         marker = '';
         data = '';
@@ -558,6 +580,7 @@ bot.on('callback_query', async msg => {
 
     if (data === '/download') {
         marker = 'download';
+        data = '';
         return bot.sendMessage(chatID, 'Виберіть за який місяць Ви бажаєте вивантажити файл:', buttonsGetMonth);
     }
 
